@@ -131,6 +131,7 @@ bool IsRunningInEmulator();
 
 bool FsyncDirectory(const std::string& dirname);
 
+bool writeStringToFile(const std::string& payload, const std::string& filename);
 }  // namespace vold
 }  // namespace android
 
