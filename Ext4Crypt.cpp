@@ -671,46 +671,6 @@ bool e4crypt_add_user_key_auth(userid_t user_id, int serial, const std::string& 
     return true;
 }
 
-bool e4crypt_clear_user_key_auth(userid_t user_id, int serial, const std::string& token_hex,
-                                 const std::string& secret_hex) {
-    LOG(DEBUG) << "e4crypt_clear_user_key_auth " << user_id << " serial=" << serial
-               << " token_present=" << (token_hex != "!");
-    if (!e4crypt_is_native()) return true;
-    if (s_ephemeral_users.count(user_id) != 0) return true;
-    std::string token, secret;
-
-    if (!parse_hex(token_hex, &token)) return false;
-    if (!parse_hex(secret_hex, &secret)) return false;
-
-    if (is_wrapped_key_supported()) {
-        auto const directory_path = get_ce_key_directory_path(user_id);
-        auto const paths = get_ce_key_paths(directory_path);
-
-        KeyBuffer ce_key;
-        std::string ce_key_current_path = get_ce_key_current_path(directory_path);
-
-        auto auth = android::vold::KeyAuthentication(token, secret);
-        /* Retrieve key while removing a pin. A secret is needed */
-        if (android::vold::retrieveKey(ce_key_current_path, auth, &ce_key)) {
-            LOG(DEBUG) << "Successfully retrieved key";
-        } else {
-            /* Retrieve key when going None to swipe and vice versa when a
-               synthetic password is present */
-            if (android::vold::retrieveKey(ce_key_current_path, kEmptyAuthentication, &ce_key)) {
-                LOG(DEBUG) << "Successfully retrieved key";
-            }
-        }
-
-        std::string ce_key_path;
-        if (!get_ce_key_new_path(directory_path, paths, &ce_key_path)) return false;
-        if (!android::vold::storeKeyAtomically(ce_key_path, user_key_temp, kEmptyAuthentication, ce_key))
-            return false;
-    } else {
-        if(!e4crypt_add_user_key_auth(user_id, serial, "!", "!")) return false;
-    }
-    return true;
-}
-
 bool e4crypt_fixate_newest_user_key_auth(userid_t user_id) {
     LOG(DEBUG) << "e4crypt_fixate_newest_user_key_auth " << user_id;
     if (!e4crypt_is_native()) return true;
